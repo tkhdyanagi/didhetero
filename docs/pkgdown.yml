@@ -1,0 +1,10 @@
+pandoc: 3.1.1
+pkgdown: 2.0.7
+pkgdown_sha: ~
+articles:
+  didhetero: didhetero.html
+last_built: 2023-11-29T00:21Z
+urls:
+  reference: https://tkhdyanagi.github.io/didhetero/reference
+  article: https://tkhdyanagi.github.io/didhetero/articles
+

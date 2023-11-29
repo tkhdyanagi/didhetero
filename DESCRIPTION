@@ -1,7 +1,7 @@
 Package: didhetero
 Type: Package
 Title: Treatment Effect Heterogeneity in Staggered Difference-in-Differences
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person("Shunsuke", "Imai", email = "imai.shunsuke.57n@st.kyoto-u.ac.jp", role = c("aut", "cph")),
     person("Lei", "Qin", email = "dannychin524@gmail.com", role = c("aut", "cph")),
@@ -34,3 +34,4 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+URL: https://tkhdyanagi.github.io/didhetero/
