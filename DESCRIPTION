@@ -1,0 +1,36 @@
+Package: didhetero
+Type: Package
+Title: Treatment Effect Heterogeneity in Staggered Difference-in-Differences
+Version: 0.1.0
+Authors@R: c(
+    person("Shunsuke", "Imai", email = "imai.shunsuke.57n@st.kyoto-u.ac.jp", role = c("aut", "cph")),
+    person("Lei", "Qin", email = "dannychin524@gmail.com", role = c("aut", "cph")),
+    person("Takahide", "Yanagi", email = "yanagi@econ.kyoto-u.ac.jp", role = c("aut", "cre", "cph"), comment = c(ORCID = "0000-0003-3975-5518"))
+    )
+Description: Understanding the heterogeneity in treatment effects with repect to 
+    covariates is essential in empirical analysis using the staggered
+    difference-in-differences (DiD) method.
+    This package provides tools to construct doubly robust uniform confidence bands 
+    for the group-time conditional average treatment effect (CATT) function
+    given a continuous pre-treatment of covariate in the staggered DiD setup
+    of Callaway and Sant'Anna (2021).
+    The uniform inference procedures are developed by 
+    Imai, Qin, and Yanagi (2023) <doi:10.48550/arXiv.2305.02185>.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    doParallel,
+    dplyr,
+    foreach,
+    ggplot2,
+    nprobust,
+    parallel,
+    purrr,
+    rlang,
+    stats
+RoxygenNote: 7.2.3
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

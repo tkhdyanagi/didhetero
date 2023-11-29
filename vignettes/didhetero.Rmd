@@ -1,0 +1,230 @@
+---
+title: "Getting Started with the didhetero Package"
+author: "Shunsuke Imai (imai.shunsuke.57n@st.kyoto-u.ac.jp), Lei Qin (dannychin524@gmail.com), Takahide Yanagi (yanagi@econ.kyoto-u.ac.jp)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with the didhetero Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7.5, 
+  fig.height = 5 
+)
+options(rmarkdown.html_vignette.check_title = FALSE)
+```
+
+## Introduction
+
+The **didhetero** package provides tools to construct doubly robust 
+uniform confidence bands (UCB) for the group-time conditional average treatment 
+effect (CATT) function given a pre-treatment covariate of interest 
+in the staggered difference-in-differences (DiD) setup of Callaway and Sant'Anna (2021).
+The uniform inference procedures are developed by [Imai, Qin, and Yanagi (2023) "Doubly Robust Uniform Confidence Bands for Group-Time Conditional Average Treatment Effects in Difference-in-Differences"](https://doi.org/10.48550/arXiv.2305.02185).
+
+## Installation
+
+Get the package from GitHub:
+
+```{r, eval = F, echo = T}
+# install.packages("devtools") # if needed
+devtools::install_github("tkhdyanagi/didhetero", build_vignettes = TRUE)
+```
+
+## Package Function
+
+The **didhetero** package provides the following functions:
+
+- `catt_gt_continuous()`: Doubly robust UCB for the CATT function given a continuous covariate.
+- `catt_gt_discrete()`: Doubly robust UCB for the CATT function given a discrete covariate.
+
+#### Arguments
+
+All package functions have the following arguments:
+
+- `yname`: The name of the outcome.
+- `tname`: The name of the time periods.
+- `idname`: The name of the cross-sectional IDs.
+- `gname`: The name of the groups.
+   "G = 0" indicates the never treated group.
+- `zname`: The name of the scalar continuous covariate for which the group-time 
+   conditional average treatment effects are estimated
+- `xformla`: A formula for the covariates to include in the model.
+   It should be of the form `~ X1 + X2`.
+   `xformla` should include `zname` as a covariate.
+- `data`: The name of data.frame that contains the balanced panel data.
+- `zeval`: The vector of the evaluation points z.
+- `gteval`: The vector or matrix of the evaluation points g and t.
+   If it is a vector, the first and second elements indicate g and t, respectively
+   If it is a matrix, the first and second columns indicate g's and t's, respectively.
+   Default is `NULL`, and `gteval` is automatically constructed.
+- `control_group`: Which units to use the control group.
+   Options are "nevertreated" and "notyettreated".
+   Default is "nevertreated".
+- `anticipation`: The number of time periods before participating in the
+   treatment where units can anticipate participating in the treatment and
+   therefore it can affect their untreated potential outcomes.
+   Default is 0.
+- `alp`: The significance level. Default is 0.05.
+- `biters`: The number of bootstrap iterations to use.
+   Default is 1000, which is only applicable if bstrap is `TRUE`.
+-  `uniformall`: Boolean for whether or not to perform the uniform inference over $(g, t, z)$.
+   Default is `FALSE`, and the uniform inference only over $z$ is performed.
+- `cores`: The number of cores to use for parallel processing. 
+   The number of available cores can be checked with `parallel::detectCores()`.
+   Default is 1.
+
+The `catt_gt_continuous()` function has the following additional arguments:
+
+- `bstrap`: Boolean for whether or not to perform the multiplier bootstrap inference.
+   Default is `TRUE`.
+   If bstrap is `FALSE`, only the analytic critical value is used.
+- `porder`: The polynomial order used for the second- and third-stage estimation.
+   Options are 1 and 2, which correspond to the local linear and quadratic regressions, respectively.
+   Default is 2.
+- `kernel`: The kernel function used for the local polynomial regressions.
+   Options are `gau` for the Gaussian kernel and `epa` for the Epanechnikov kernel.
+   Default is `gau`.
+- `bw`: The scalar bandwidth used for the second- and third-stage estimation.
+   Default is `NULL`, and the bandwidth is automatically selected.
+
+#### Returns
+
+The `catt_gt_continuous()` function returns a list that contains the following elements:
+
+- `Estimate`: A data.frame that contains the following elements:
+  - `g`: A group.
+  - `t`: A period.
+  - `z`: An evaluation point.
+  - `est`: A doubly robust estimate for CATT.
+  - `se`: A standard error.
+  - `ci1_lower`: The lower bound of the UCB based on the analytical method.
+  - `ci1_upper`: The upper bound of the UCB based on the analytical method.
+  - `ci2_lower`: The lower bound of the UCB via multiplier bootstrapping.
+  - `ci2_upper`: The upper bound of the UCB via multiplier bootstrapping.
+  - `bw`: The bandwidth.
+- `Figure1`: A list that contains the ggplot elements for the analytic UCBs.
+- `Figure2`: A list that contains the ggplot elements for the UCBs via multiplier bootstrapping.
+
+The `catt_gt_discrete()` function returns a list that contains the following elements:
+
+- `Estimate`: A data.frame that contains the following elements:
+  - `g`: The group.
+  - `t`: The period.
+  - `z`: The covariate value.
+  - `est`: The doubly robust estimate of CATT.
+  - `se`: The standard error.
+  - `ci_lower`: The lower bound of the UCB via multiplier bootstrapping.
+  - `ci_upper`: The upper bound of the UCB via multiplier bootstrapping.
+- `Figure`: A list that contains the ggplot elements for the UCB via multiplier bootstrapping.
+
+## Example: Continuous Covariate
+
+We begin by generating artificial data using the `datageneration()` function.
+
+```{r, eval = T, echo = T}
+# Load the package
+library(didhetero)
+
+# Generate artificial data
+# n: The number of cross-sectional units
+# tau: The length of time series
+# continuous: Generate a continuous (resp. discrete) covariate if it is TRUE (resp. FALSE).
+set.seed(1)
+data1 <- datageneration(n = 1000, tau = 4, continuous = TRUE)
+```
+
+We can see the variables' names in the dataset with:
+
+```{r, eval = T, echo = T}
+head(data1)
+```
+
+We run the `catt_gt_continuous()` function to construct the doubly robust UCB for the CATT function given a continuous covariate $Z$:
+
+```{r, eval = T, echo = T}
+UCB1 <- catt_gt_continuous(yname = "Y",
+                           tname = "period",
+                           idname = "id",
+                           gname = "G",
+                           zname = "Z",
+                           xformla = ~ Z,
+                           data = data1,
+                           zeval = seq(-1, 1, by = 0.1),
+                           gteval = c(2, 2),
+                           control_group = "nevertreated",
+                           anticipation = 0,
+                           alp = 0.05,
+                           bstrap = TRUE,
+                           biters = 1000,
+                           porder = 2,
+                           kernel = "gau",
+                           bw = NULL,
+                           uniformall = FALSE,
+                           cores = 1)
+```
+
+The estimation and uniform inference results are given by:
+```{r, eval = T, echo = T}
+head(UCB1$Estimate)
+```
+
+The figure of the resulting UCB computed with the analytic critical value is given by:
+```{r, eval = T, echo = T}
+UCB1$Figure1
+```
+
+The figure of the resulting UCB via multiplier bootstrapping is given by:
+```{r, eval = T, echo = T}
+UCB1$Figure2
+```
+
+## Example: Discrete Covariate
+
+Data generation:
+```{r, eval = T, echo = T}
+set.seed(1)
+data2 <- datageneration(n = 1000, tau = 4, continuous = FALSE)
+```
+
+Estimation and uniform inference:
+```{r, eval = T, echo = T}
+UCB2 <- catt_gt_discrete(yname = "Y",
+                         tname = "period",
+                         idname = "id",
+                         gname = "G",
+                         zname = "Z",
+                         xformla = ~ Z,
+                         data = data2,
+                         zeval = c(-1, 0, 1),
+                         gteval = c(2, 2),
+                         control_group = "nevertreated",
+                         anticipation = 0,
+                         alp = 0.05,
+                         biters = 1000,
+                         uniformall = FALSE,
+                         cores = 1)
+```
+
+Results:
+```{r, eval = T, echo = T}
+head(UCB2$Estimate)
+
+UCB2$Figure
+```
+
+## References
+
+- Callaway, B., & Sant’Anna, P. H. (2021). 
+Difference-in-differences with multiple time periods. 
+Journal of Econometrics, 225(2), 200-230.
+[Link](https://doi.org/10.1016/j.jeconom.2020.12.001)
+
+- Imai, S., Qin, L., & Yanagi, T. (2023). 
+Doubly Robust Uniform Confidence Bands for Group-Time Conditional Average Treatment Effects in Difference-in-Differences.
+arXiv preprint arXiv:2305.02185.
+[Link](https://doi.org/10.48550/arXiv.2305.02185)

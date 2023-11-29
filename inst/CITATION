@@ -1,0 +1,19 @@
+bibentry(
+  bibtype   = "Misc",
+  title     = "Doubly Robust Uniform Confidence Bands for Group-Time Conditional Average Treatment Effects in Difference-in-Differences",
+  author    = c(person("Shunsuke", "Imai"), person("Lei", "Qin"), person("Takahide", "Yanagi")),
+  url       = "https://doi.org/10.48550/arXiv.2305.02185",
+  doi       = "10.48550/arXiv.2305.02185",
+  publisher = "arXiv",
+  year      = "2023",
+  header    = "To cite the paper that the R didhetero package is based on:\n"
+)
+
+bibentry(
+  bibtype  = "Misc",
+  title    = "didhetero: Treatment Effect Heterogeneity in Staggered Difference-in-Differences",
+  author    = c(person("Shunsuke", "Imai"), person("Lei", "Qin"), person("Takahide", "Yanagi")),
+  url      = "https://tkhdyanagi.github.io/didhetero/",
+  year     = "2023",
+  header   = "To cite the R didhetero package:\n"
+)
