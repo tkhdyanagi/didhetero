@@ -1,3 +1,7 @@
+# didhetero 0.1.3
+
+* Updated the GitHub Pages.
+
 # didhetero 0.1.2
 
 * Added the `pretrend` and `bwselect` arguments to the `catt_gt_continuous` function.
