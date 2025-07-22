@@ -1,6 +1,18 @@
+# didhetero 0.1.2
+
+* Added the `pretrend` and `bwselect` arguments to the `catt_gt_continuous` function.
+
+* Changed the default of `uniformall` in the `catt_gt_continuous` function from `FALSE` to `TRUE`.
+
+* Added the `aggte_continuous` function.
+
+* Removed the `catt_gt_discrete` function.
+
+* Improved many minor things.
+
 # didhetero 0.1.1
 
-* Add GitHub Pages.
+* Added GitHub Pages.
 
 # didhetero 0.1.0
 

@@ -4,15 +4,27 @@
 \alias{datageneration}
 \title{Data generating function}
 \usage{
-datageneration(n, tau, continuous = TRUE)
+datageneration(n, tau, HC = FALSE, dimX = 1, DGPY = 1, continuous = TRUE)
 }
 \arguments{
 \item{n}{The number of cross-sectional units}
 
 \item{tau}{The length of time series such that tau > 2}
 
-\item{continuous}{Boolean for whether or not to consider a continuous covariate.
-If it is TRUE (resp. FALSE), a continuous (resp. discrete) covariate is generated.
+\item{HC}{Boolean for whether or not to consider heteroscedastic error terms.
+If it is TRUE (resp. FALSE), heteroscedastic (resp. homoscedastic) error terms are generated.
+Default is FALSE.}
+
+\item{dimX}{The dimension of covariates X.
+It should be a positive integer.
+Default is 1.}
+
+\item{DGPY}{The data generating process for the treated potential outcome equations.
+Options are 1 and 2.
+Default is 1.}
+
+\item{continuous}{Boolean for whether or not to consider a continuous covariate Z.
+If it is TRUE (resp. FALSE), a continuous (resp. discrete) covariate Z is generated.
 Default is TRUE.}
 }
 \value{
@@ -22,12 +34,18 @@ A data.frame that contains the following elements.
 \item{Y}{The outcome}
 \item{G}{The group}
 \item{Z}{The scalar continuous covariate}
+\item{X}{The other covariates}
 }
 \description{
 Data generating function
 }
 \examples{
 set.seed(1)
-data <- datageneration(n = 1000, tau = 4, continuous = TRUE)
+data <- datageneration(n = 500,
+                       tau = 4,
+                       HC = FALSE,
+                       dimX = 1,
+                       DGPY = 1,
+                       continuous = TRUE)
 
 }

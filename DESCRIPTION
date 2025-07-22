@@ -1,35 +1,34 @@
 Package: didhetero
 Type: Package
 Title: Treatment Effect Heterogeneity in Staggered Difference-in-Differences
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(
     person("Shunsuke", "Imai", email = "imai.shunsuke.57n@st.kyoto-u.ac.jp", role = c("aut", "cph")),
-    person("Lei", "Qin", email = "dannychin524@gmail.com", role = c("aut", "cph")),
+    person("Lei", "Qin", email = "qinlei6d@unii.ac.jp", role = c("aut", "cph")),
     person("Takahide", "Yanagi", email = "yanagi@econ.kyoto-u.ac.jp", role = c("aut", "cre", "cph"), comment = c(ORCID = "0000-0003-3975-5518"))
     )
-Description: Understanding the heterogeneity in treatment effects with repect to 
-    covariates is essential in empirical analysis using the staggered
-    difference-in-differences (DiD) method.
+Description: Understanding the heterogeneity in treatment effects with repect to
+    groups, periods, and covariates is essential in empirical analysis 
+    using the staggered difference-in-differences (DiD) methods.
     This package provides tools to construct doubly robust uniform confidence bands 
     for the group-time conditional average treatment effect (CATT) function
-    given a continuous pre-treatment of covariate in the staggered DiD setup
+    given a continuous pre-treatment of covariate and a variety of useful 
+    summary parameters in the staggered DiD setup 
     of Callaway and Sant'Anna (2021).
     The uniform inference procedures are developed by 
-    Imai, Qin, and Yanagi (2023) <doi:10.48550/arXiv.2305.02185>.
+    Imai, Qin, and Yanagi (2025) <doi:10.48550/arXiv.2305.02185>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
-    doParallel,
     dplyr,
-    foreach,
     ggplot2,
+    lpdensity,
     nprobust,
-    parallel,
     purrr,
     rlang,
     stats
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Suggests: 
     knitr,
     rmarkdown

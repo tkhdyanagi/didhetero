@@ -8,7 +8,15 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7.5, 
+  fig.height = 5 
+)
+options(rmarkdown.html_vignette.check_title = FALSE)
+```
 
 ## Introduction
 
@@ -26,8 +34,7 @@ The uniform inference procedures are developed by [Imai, Qin, and Yanagi (2025) 
 
 Get the package from GitHub:
 
-
-``` r
+```{r, eval = F, echo = T}
 # install.packages("devtools") # if needed
 devtools::install_github("tkhdyanagi/didhetero", build_vignettes = TRUE)
 ```
@@ -186,8 +193,7 @@ The `aggte_continuous()` function returns a list that contains the following ele
 
 We begin by generating artificial data using the `datageneration()` function.
 
-
-``` r
+```{r, eval = T, echo = T}
 # Load the package
 library(didhetero)
 
@@ -198,22 +204,13 @@ data <- datageneration(n = 500, tau = 4)
 
 We can see the variables' names in the dataset with:
 
-
-``` r
+```{r, eval = T, echo = T}
 head(data)
-#>   id period           Y G          Z
-#> 1  1      1  0.98412124 2 -0.6264538
-#> 2  1      2  1.77999550 2 -0.6264538
-#> 3  1      3 -0.02004389 2 -0.6264538
-#> 4  1      4  6.43951734 2 -0.6264538
-#> 5  2      1  3.37331543 2  0.1836433
-#> 6  2      2  5.59684221 2  0.1836433
 ```
 
 We can run the `catt_gt_continuous()` function to compute the doubly robust estimates and uniform confidence bands for the CATT function given the continuous covariate $Z$:
 
-
-``` r
+```{r, eval = T, echo = T}
 output1 <- catt_gt_continuous(
   yname = "Y",
   tname = "period",
@@ -239,38 +236,23 @@ output1 <- catt_gt_continuous(
 ```
 
 The estimation and uniform inference results are:
-
-``` r
+```{r, eval = T, echo = T}
 head(output1$Estimate)
-#>   g t    z       est        se   ci1_lower ci1_upper  ci2_lower ci2_upper        bw
-#> 1 2 2 -1.0 1.0264796 0.4222882 -0.09707295  2.150032 -0.9308918  2.983851 0.2547594
-#> 2 2 2 -0.9 0.7652004 0.3980792 -0.29394090  1.824342 -1.0799584  2.610359 0.2547594
-#> 3 2 2 -0.8 0.5273424 0.3785987 -0.47996845  1.534653 -1.2275212  2.282206 0.2547594
-#> 4 2 2 -0.7 0.3192217 0.3636817 -0.64840072  1.286844 -1.3664996  2.004943 0.2547594
-#> 5 2 2 -0.6 0.1813663 0.3498634 -0.74949043  1.112223 -1.4403045  1.803037 0.2547594
-#> 6 2 2 -0.5 0.1441067 0.3353516 -0.74813968  1.036353 -1.4102999  1.698513 0.2547594
 ```
 
 The figure of the analytical uniform confidence band for $g = 2$ and $t = 2$ is:
-
-``` r
+```{r, eval = T, echo = T}
 output1$Figure1$g2_t2
 ```
 
-![](unnamed-chunk-7-1.png)
-
 The figure of the bootstrap uniform confidence band for $g = 2$ and $t = 2$ is:
-
-``` r
+```{r, eval = T, echo = T}
 output1$Figure2$g2_t2
 ```
 
-![](unnamed-chunk-8-1.png)
-
 We can run the `aggte_continuous()` function to compute the doubly robust estimates and uniform confidence bands for the event-study-type parameter given the continuous covariate $Z$:
 
-
-``` r
+```{r, eval = T, echo = T}
 output2 <- aggte_continuous(
   output = output1,
   type = "dynamic",
@@ -285,33 +267,19 @@ output2 <- aggte_continuous(
 ```
 
 The estimation and uniform inference results are:
-
-``` r
+```{r, eval = T, echo = T}
 head(output2$Estimate)
-#>   eval    z       est        se  ci1_lower ci1_upper   ci2_lower ci2_upper        bw
-#> 1    0 -1.0 1.3522719 0.2938703  0.5590099  2.145534  0.47091346  2.233630 0.2296415
-#> 2    0 -0.9 1.0763768 0.2923213  0.2872961  1.865457  0.19966408  1.953089 0.2296415
-#> 3    0 -0.8 0.7894387 0.2849603  0.0202280  1.558649 -0.06519735  1.644075 0.2296415
-#> 4    0 -0.7 0.5326729 0.2758289 -0.2118887  1.277235 -0.29457664  1.359922 0.2296415
-#> 5    0 -0.6 0.3607236 0.2673598 -0.3609771  1.082424 -0.44112621  1.162573 0.2296415
-#> 6    0 -0.5 0.3072095 0.2575102 -0.3879036  1.002323 -0.46510000  1.079519 0.2296415
 ```
 
 The figure of the analytical uniform confidence band for $e = 0$ is:
-
-``` r
+```{r, eval = T, echo = T}
 output2$Figure1$eval0
 ```
 
-![](unnamed-chunk-11-1.png)
-
 The figure of the bootstrap Uuniform confidence band for $e = 0$ is:
-
-``` r
+```{r, eval = T, echo = T}
 output2$Figure2$eval0
 ```
-
-![](unnamed-chunk-12-1.png)
 
 ## References
 

@@ -1,10 +1,11 @@
-#' Group-Time Conditional Average Treatment Effects Given a Continuous Covariate
+#' Uniform Inference for Group-Time Conditional Average Treatment Effects Given a Continuous Covariate
 #'
-#' `catt_gt_continuous` computes doubly robust uniform confidence bands for
-#' the group-time conditional average treatment (CATT) function given a continuous
-#' pre-treatment covariate in the staggered difference-in-differences setup of
-#' Callaway and Sant'Anna (2021).
-#' See Imai, Qin, and Yanagi (2023) for details.
+#' `catt_gt_continuous` computes doubly robust estimates and uniform confidence
+#' bands for the group-time conditional average treatment effect (CATT)
+#' function given a continuous pre-treatment covariate in the staggered
+#' difference-in-differences setup of Callaway and Sant'Anna (2021)
+#' for balanced panel data.
+#' See Imai, Qin, and Yanagi (2025) for more details.
 #'
 #' @param yname The name of the outcome
 #' @param tname The name of the time periods
@@ -22,22 +23,27 @@
 #' @param gteval The vector or matrix of the evaluation points g and t.
 #' If it is a vector, the first and second elements indicate g and t, respectively.
 #' If it is a matrix, the first and second columns indicate g's and t's, respectively.
-#' Default is `NULL`, and `gteval` is automatically constructed.
+#' Default is `NULL` and `gteval` is constructed automatically.
+#' @param pretrend Boolean for whether or not to perform the uniform inference
+#' for CATT in the pre-treatment periods (i.e., conditional pre-trends).
+#' This parameter is only applicable if `gteval = NULL`.
+#' Default is `FALSE`.
 #' @param control_group Which units to use the control group.
 #' Options are "nevertreated" and "notyettreated".
-#' Default is "nevertreated".
+#' Default is "notyettreated".
 #' @param anticipation The number of time periods before participating in the
 #' treatment where units can anticipate participating in the treatment and
 #' therefore it can affect their untreated potential outcomes.
 #' Default is 0.
 #' @param alp The significance level. Default is 0.05.
 #' @param bstrap
-#' Boolean for whether or not to perform the multiplier bootstrap inference.
+#' Boolean for whether or not to perform weighted bootstrapping.
 #' Default is `TRUE`.
 #' If bstrap is `FALSE`, only the analytical critical value is used.
 #' @param biters
-#' The number of bootstrap iterations to use.
-#' Default is 1000, which is only applicable if bstrap is `TRUE`.
+#' The number of bootstrap iterations.
+#' This parameter is only applicable if bstrap is `TRUE`.
+#' Default is 1000.
 #' @param porder
 #' The polynomial order used for the second- and third-stage estimation.
 #' Options are 1 and 2,
@@ -48,18 +54,25 @@
 #' Options are "gau" for the Gaussian kernel and
 #' "epa" for the Epanechnikov kernel.
 #' Default is "gau".
+#' @param bwselect
+#' The bandwidth selection method used for the second- and third-stage estimation.
+#' Options are "IMSE1", "IMSE2", "US1", and "manual".
+#' "IMSE1" and "IMSE2" mean the IMSE-optimal bandwidths for the local linear and quadratic regressions, respectively.
+#' "US1" means the rule-of-thumb undersmoothing bandwidth for the local linear regression.
+#' "manual" means the manual selection and bw should be specified in this case.
+#' Default is "IMSE1", which is recommended for use with `porder = 2`.
 #' @param bw
-#' The scalar bandwidth used for the second- and third-stage estimation.
-#' Default is `NULL`, and the bandwidth is automatically selected.
+#' The bandwidth used for the second- and third-stage estimation.
+#' Default is `NULL` and the bandwidth is chosen automatically.
+#' This parameter is only applicable if bwselect is "manual", and
+#' should be a scalar or a vector whose length equals to the number of rows of gteval.
 #' @param uniformall
 #' Boolean for whether or not to perform the uniform inference over (g, t, z).
-#' Default is `FALSE`, and the uniform inference only over z is performed.
-#' @param cores The number of cores to use for parallel processing.
-#' The number of available cores can be checked with parallel::detectCores().
-#' Default is 1.
+#' Default is `TRUE`, and the uniform inference over (g, t, z) is performed.
+#' If `FALSE`, the uniform inference only over z is performed.
 #'
-#' @return A list that contains the following elements:
-#' \item{Estimate}{A data.frame that contains the following elements: \cr
+#' @return A list that contains the following elements.
+#' \item{Estimate}{A data.frame that contains the following elements. \cr
 #' g: The group. \cr
 #' t: The period. \cr
 #' z: The covariate value. \cr
@@ -67,14 +80,13 @@
 #' se: The standard error. \cr
 #' ci1_lower: The lower bound of the analytical UCB. \cr
 #' ci1_upper: The upper bound of the analytical UCB. \cr
-#' ci2_lower: The lower bound of the UCB via multiplier bootstrapping. \cr
-#' ci2_upper: The upper bound of the UCB via multiplier bootstrapping. \cr
+#' ci2_lower: The lower bound of the bootstrap UCB. \cr
+#' ci2_upper: The upper bound of the bootstrap UCB. \cr
 #' bw: The bandwidth.}
 #' \item{Figure1}{A list that contains the ggplot elements for the analytical UCB}
-#' \item{Figure2}{A list that contains the ggplot elements for the UCB via multiplier bootstrapping}
+#' \item{Figure2}{A list that contains the ggplot elements for the bootstrap UCB}
 #'
 #' @importFrom dplyr arrange filter mutate pull sym
-#' @importFrom foreach %dopar%
 #' @importFrom purrr %>%
 #' @importFrom rlang UQ
 #' @importFrom utils globalVariables
@@ -83,27 +95,35 @@
 #'
 #' @examples
 #' \dontrun{
-#' set.seed(1)
-#' data <- datageneration(n = 1000, tau = 4, continuous = TRUE)
-#' est <- catt_gt_continuous(yname = "Y",
-#'                           tname = "period",
-#'                           idname = "id",
-#'                           gname = "G",
-#'                           zname = "Z",
-#'                           xformla = ~ Z,
-#'                           data = data,
-#'                           zeval = seq(-1, 1, by = 0.1),
-#'                           gteval = c(2, 2),
-#'                           control_group = "nevertreated",
-#'                           anticipation = 0,
-#'                           alp = 0.05,
-#'                           bstrap = TRUE,
-#'                           biters = 1000,
-#'                           porder = 2,
-#'                           kernel = "gau",
-#'                           bw = NULL,
-#'                           uniformall = FALSE,
-#'                           cores = 1)
+#'
+#' data <- datageneration(
+#'   n = 500,
+#'   tau = 4
+#' )
+#'
+#' output <- catt_gt_continuous(
+#'   yname = "Y",
+#'   tname = "period",
+#'   idname = "id",
+#'   gname = "G",
+#'   zname = "Z",
+#'   xformla = ~ Z,
+#'   data = data,
+#'   zeval = seq(-1, 1, by = 0.1),
+#'   gteval = c(2, 2),
+#'   pretrend = FALSE,
+#'   control_group = "notyettreated",
+#'   anticipation = 0,
+#'   alp = 0.05,
+#'   bstrap = TRUE,
+#'   biters = 1000,
+#'   porder = 2,
+#'   kernel = "gau",
+#'   bwselect = "IMSE1",
+#'   bw = NULL,
+#'   uniformall = TRUE
+#' )
+#'
 #' }
 #'
 #' @references
@@ -111,10 +131,10 @@
 #' Difference-in-differences with multiple time periods.
 #' Journal of Econometrics, 225(2), 200-230.
 #'
-#' Imai, S., Qin, L., & Yanagi, T. (2023).
-#' Doubly Robust Uniform Confidence Bands
-#' for Group-Time Conditional Average Treatment Effects
-#' in Difference-in-Differences.
+#' Imai, S., Qin, L., & Yanagi, T. (2025).
+#' Doubly robust uniform confidence bands
+#' for group-time conditional average treatment effects
+#' in difference-in-differences.
 #' arXiv preprint arXiv:2305.02185.
 #'
 catt_gt_continuous <- function(yname,
@@ -126,16 +146,17 @@ catt_gt_continuous <- function(yname,
                                data,
                                zeval,
                                gteval = NULL,
-                               control_group = "nevertreated",
+                               pretrend = FALSE,
+                               control_group = "notyettreated",
                                anticipation = 0,
                                alp = 0.05,
                                bstrap = TRUE,
                                biters = 1000,
                                porder = 2,
                                kernel = "gau",
+                               bwselect = "IMSE1",
                                bw = NULL,
-                               uniformall = FALSE,
-                               cores = 1) {
+                               uniformall = TRUE) {
 
   #-----------------------------------------------------------------------------
   # Error handling
@@ -150,6 +171,7 @@ catt_gt_continuous <- function(yname,
                                     data = data,
                                     zeval = zeval,
                                     gteval = gteval,
+                                    pretrend = pretrend,
                                     control_group = control_group,
                                     anticipation = anticipation,
                                     alp = alp,
@@ -157,9 +179,36 @@ catt_gt_continuous <- function(yname,
                                     biters = biters,
                                     porder = porder,
                                     kernel = kernel,
+                                    bwselect = bwselect,
                                     bw = bw,
-                                    uniformall = uniformall,
-                                    cores = cores)
+                                    uniformall = uniformall)
+
+  #-----------------------------------------------------------------------------
+  # Save arguments
+  #-----------------------------------------------------------------------------
+
+  zeval <- sort(zeval)
+
+  Arguments <- list(yname = yname,
+                    tname = tname,
+                    idname = idname,
+                    gname = gname,
+                    zname = zname,
+                    xformla = xformla,
+                    data = data,
+                    zeval = zeval,
+                    gteval = gteval,
+                    pretrend = pretrend,
+                    control_group = control_group,
+                    anticipation = anticipation,
+                    alp = alp,
+                    bstrap = bstrap,
+                    biters = biters,
+                    porder = porder,
+                    kernel = kernel,
+                    bwselect = bwselect,
+                    bw = bw,
+                    uniformall = uniformall)
 
   #-----------------------------------------------------------------------------
   # Basic variable definitions
@@ -191,25 +240,38 @@ catt_gt_continuous <- function(yname,
   teval <- intersect(supp_t, supp_t - anticipation) %>%
     setdiff(period1)
 
-  gbar <- max(supp_g)
+  if (sum(data$G == 0) == 0) {
+    gbar <- max(supp_g)
+  } else {
+    gbar <- Inf
+  }
 
   if (is.null(gteval)) {
-    for (g1 in geval) {
-      for (t1 in teval) {
-        if (control_group == "nevertreated") {
-          if (t1 >= g1 - anticipation) {
+    if (!pretrend) {
+      for (g1 in geval) {
+        for (t1 in teval) {
+          if (control_group == "nevertreated") {
+            if (t1 >= g1 - anticipation) {
 
-            gteval <- rbind(gteval, c(g1, t1))
+              gteval <- rbind(gteval, c(g1, t1))
 
-          }
-        } else if (control_group == "notyettreated") {
-          if (t1 >= g1 - anticipation & t1 < gbar - anticipation) {
+            }
+          } else if (control_group == "notyettreated") {
+            if (t1 >= g1 - anticipation & t1 < gbar - anticipation) {
 
-            gteval <- rbind(gteval, c(g1, t1))
+              gteval <- rbind(gteval, c(g1, t1))
 
+            }
           }
         }
       }
+    } else if (pretrend) {
+      for (g1 in geval) {
+        for (t1 in teval) {
+          gteval <- rbind(gteval, c(g1, t1))
+        }
+      }
+      gteval <- gteval[gteval[, 2] - gteval[, 1] != -1, ]
     }
   }
 
@@ -232,11 +294,6 @@ catt_gt_continuous <- function(yname,
   # Number of zeval
   zeval <- sort(zeval)
   num_zeval <- length(zeval)
-
-  # Variables used for parallel computing
-  cluster <- parallel::makeCluster(cores)
-  doParallel::registerDoParallel(cluster, cores = cores)
-  packages <- c("nprobust")
 
   # Matrix of the estimates and uniform confidence bands
   Estimate <- NULL
@@ -268,21 +325,21 @@ catt_gt_continuous <- function(yname,
 
   }
 
-  # Constant used for estimating \mathcal{V}_{p,g,t,\delta}
-  if (porder == 1) {
+  # Constants in \mathcal{V}_{p,g,t,\delta} for the LLR and LQR estimators
+  const_V1 <- I_0_K2
 
-    const_V <- I_0_K2
+  const_V2 <-
+    (I_4_K1^2 * I_0_K2 - 2 * I_2_K1 * I_4_K1 * I_2_K2 + I_2_K1^2 * I_4_K2) /
+    (I_4_K1 - I_2_K1^2)^2
 
-  } else if (porder == 2) {
-
-    const_V <-
-      (I_4_K1^2 * I_0_K2 - 2 * I_2_K1 * I_4_K1 * I_2_K2 + I_2_K1^2 * I_4_K2) /
-      (I_4_K1 - I_2_K1^2)^2
-
-  }
+  const_V <- (porder == 1) * const_V1 + (porder == 2) * const_V2
 
   # A_g_t and B_g_t
   A_g_t <- B_g_t <- array(NA, dim = c(n, num_zeval, num_gteval))
+
+  # Matrices for mu_G_g and G_g
+  G_g    <- matrix(NA, nrow = n,         ncol = num_gteval)
+  mu_G_g <- matrix(NA, nrow = num_zeval, ncol = num_gteval)
 
   # Matrices for mu_E_g_t and mu_F_g_t
   mu_E_g_t <- mu_F_g_t <- matrix(NA, nrow = num_zeval, ncol = num_gteval)
@@ -317,24 +374,27 @@ catt_gt_continuous <- function(yname,
   # Support
   Z_supp <- seq(min(Z), max(Z), length = 100)
 
-  # Bandwidth selection
-  kd_Z_bw <- nprobust::kdbwselect(x = Z,
-                                  eval = zeval,
-                                  kernel = "epa",
-                                  bwselect = "mse-dpi")$bws[, 2]
-  # Kernel density estimate
-  kd_Z <- kde_func(x = Z,
-                   eval = zeval,
-                   kernel = "epa",
-                   h = kd_Z_bw)
+  # Kernel density estimation
+  kd0_Z <- nprobust::kdrobust(x = Z,
+                              eval = zeval,
+                              kernel = "epa",
+                              bwselect = "mse-dpi")$Estimate[, 5]
+
+  # Local polynomial density estimation for the first-order derivative
+  kd1_Z <- lpdensity::lpdensity(data = Z,
+                                grid = zeval,
+                                p = 3,
+                                v = 2,
+                                kernel = "epanechnikov",
+                                bwselect = "mse-dpi")$Estimate[, 5]
 
   #-----------------------------------------------------------------------------
-  # Bandwidth selection for second and third stage estimation
+  # Bandwidth selection for the second- and third-stage estimation
   #-----------------------------------------------------------------------------
 
-  bwselect <- bw
+  if (bwselect %in% c("IMSE1", "IMSE2", "US1")) {
 
-  if (is.null(bwselect)) {
+    bw <- NULL
 
     for (id_gt in 1:num_gteval) {
 
@@ -366,7 +426,7 @@ catt_gt_continuous <- function(yname,
         data1 <- data %>%
           filter(period == period1) %>%
           mutate(G_g = ifelse(G == g1, 1, 0)) %>%
-          mutate(nev = ifelse(G == 0, 1, 0)) %>%
+          mutate(nev = ifelse(G == 0,  1, 0)) %>%
           mutate(GPScore = GPScore) %>%
           mutate(R_g = (GPScore * nev) / (1 - GPScore))
 
@@ -381,14 +441,14 @@ catt_gt_continuous <- function(yname,
         data1 <- data %>%
           filter(period == period1) %>%
           mutate(G_g = ifelse(G == g1, 1, 0)) %>%
-          mutate(notyet = (G == 0) + (G > t1 + anticipation)) %>%
+          mutate(notyet = (G == 0) + (G > max(g1, t1) + anticipation)) %>%
           mutate(GPScore = GPScore) %>%
           mutate(R_g = (GPScore * notyet) / (1 - GPScore))
 
       }
 
       # Other variables
-      G_g <- data1$G_g
+      G_g[, id_gt] <- data1$G_g
 
       R_g <- data1$R_g
 
@@ -409,12 +469,12 @@ catt_gt_continuous <- function(yname,
       Y_diff <- Y_t - Y_g - OREG
 
       E_g_t <- R_g * Y_diff
-      F_g_t <- G_g * Y_diff
+      F_g_t <- G_g[, id_gt] * Y_diff
 
       # LLR estimation for mu_G_g, mu_R_g, mu_E_g_t, and mu_F_g_t --------------
 
       # Bandwidth selection
-      mu_G_g_bw <- nprobust::lpbwselect(y = G_g,
+      mu_G_g_bw <- nprobust::lpbwselect(y = G_g[, id_gt],
                                         x = Z,
                                         eval = zeval,
                                         p = 1,
@@ -447,13 +507,13 @@ catt_gt_continuous <- function(yname,
                                           bwselect = "mse-dpi")$bws[, 2]
 
       # LLR estimation
-      mu_G_g <- lpr_func(y = G_g,
-                         x = Z,
-                         eval = zeval,
-                         p = 1,
-                         deriv = 0,
-                         kernel = kernel,
-                         h = mu_G_g_bw)
+      mu_G_g[, id_gt] <- lpr_func(y = G_g[, id_gt],
+                                  x = Z,
+                                  eval = zeval,
+                                  p = 1,
+                                  deriv = 0,
+                                  kernel = kernel,
+                                  h = mu_G_g_bw)
 
       mu_R_g <- lpr_func(y = R_g,
                          x = Z,
@@ -483,100 +543,145 @@ catt_gt_continuous <- function(yname,
 
       for (r in 1:num_zeval) {
 
-        p_diff <- (G_g / mu_G_g[r]) - (R_g / mu_R_g[r])
+        p_diff <- (G_g[, id_gt] / mu_G_g[r, id_gt]) - (R_g / mu_R_g[r])
 
         A_g_t[, r, id_gt] <- p_diff * Y_diff
 
-        B_g_t[, r, id_gt] <- p_diff * Y_diff +
+        B_g_t[, r, id_gt] <- A_g_t[, r, id_gt] +
           ((mu_E_g_t[r, id_gt] / mu_R_g[r]^2) * R_g) -
-          ((mu_F_g_t[r, id_gt] / mu_G_g[r]^2) * G_g)
+          ((mu_F_g_t[r, id_gt] / mu_G_g[r, id_gt]^2) * G_g[, id_gt])
 
       }
 
-      # Estimate \mathcal{B}_{1,g,t,\delta} for the LLR estimator --------------
+      # Estimate \mathcal{B}_{p,g,t,\delta} in asymptotic bias of LLR or LQR ---
 
-      mathcal_B <- foreach::foreach(r = 1:num_zeval,
-                                    .combine = 'c',
-                                    .export = c('kernel_func', 'lpr_func', 'polynomial_func'),
-                                    .inorder = TRUE,
-                                    .packages = packages) %dopar% {
+      mathcal_B <- rep(NA, num_zeval)
 
-                                      # Bandwidth selection for estimating the second order derivative
-                                      mu_B_g_t_2_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
-                                                                            x = Z,
-                                                                            eval = zeval[r],
-                                                                            p = 3,
-                                                                            deriv = 2,
-                                                                            kernel = kernel,
-                                                                            bwselect = "mse-dpi")$bws[, 2]
+      for (r in 1:num_zeval) {
+        if (bwselect %in% c("IMSE1", "US1")) {
 
-                                      # Estimate the second order derivative
-                                      mu_B_g_t_2 <- lpr_func(y = B_g_t[, r, id_gt],
-                                                             x = Z,
-                                                             eval = zeval[r],
-                                                             p = 3,
-                                                             deriv = 2,
-                                                             kernel = kernel,
-                                                             h = mu_B_g_t_2_bw)
+          # Bandwidth selection for estimating the second order derivative
+          mu_B_g_t_2_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
+                                                x = Z,
+                                                eval = zeval[r],
+                                                p = 3,
+                                                deriv = 2,
+                                                kernel = kernel,
+                                                bwselect = "mse-dpi")$bws[, 2]
 
-                                      # Estimated \mathcal{B} for LLR
-                                      mu_B_g_t_2 * I_2_K1 / 2
+          # Estimate the second order derivative
+          mu_B_g_t_2 <- lpr_func(y = B_g_t[, r, id_gt],
+                                 x = Z,
+                                 eval = zeval[r],
+                                 p = 3,
+                                 deriv = 2,
+                                 kernel = kernel,
+                                 h = mu_B_g_t_2_bw)
 
-                                    }
+          # Estimated \mathcal{B} for LLR
+          mathcal_B[r] <- mu_B_g_t_2 * I_2_K1 / 2
 
+        } else if (bwselect == "IMSE2") {
 
-      # Estimate \mathcal{V}_{1,g,t,\delta} for the LLR estimator --------------
+          # Bandwidth selection for estimating the third and fourth order derivatives
+          mu_B_g_t_3_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
+                                                x = Z,
+                                                eval = zeval[r],
+                                                p = 4,
+                                                deriv = 3,
+                                                kernel = kernel,
+                                                bwselect = "mse-dpi")$bws[, 2]
 
-      mathcal_V <- foreach::foreach(r = 1:num_zeval,
-                                    .combine = 'c',
-                                    .export = c('kernel_func', 'lpr_func', 'polynomial_func'),
-                                    .inorder = TRUE,
-                                    .packages = packages) %dopar% {
+          mu_B_g_t_4_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
+                                                x = Z,
+                                                eval = zeval[r],
+                                                p = 5,
+                                                deriv = 4,
+                                                kernel = kernel,
+                                                bwselect = "mse-dpi")$bws[, 2]
 
-                                      # Bandwidth selection for computing LLR residuals
-                                      mu_B_g_t_0_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
-                                                                            x = Z,
-                                                                            eval = Z_supp,
-                                                                            p = 1,
-                                                                            deriv = 0,
-                                                                            kernel = kernel,
-                                                                            bwselect = "imse-dpi")$bws[1, 2]
+          # Estimate the third and fourth order derivatives
+          mu_B_g_t_3 <- lpr_func(y = B_g_t[, r, id_gt],
+                                 x = Z,
+                                 eval = zeval[r],
+                                 p = 4,
+                                 deriv = 3,
+                                 kernel = kernel,
+                                 h = mu_B_g_t_3_bw)
 
-                                      # Compute LLR residuals
-                                      mu_B_g_t_0 <- lpr_func(y = B_g_t[, r, id_gt],
-                                                             x = Z,
-                                                             eval = Z,
-                                                             p = 1,
-                                                             deriv = 0,
-                                                             kernel = kernel,
-                                                             h = mu_B_g_t_0_bw)
+          mu_B_g_t_4 <- lpr_func(y = B_g_t[, r, id_gt],
+                                 x = Z,
+                                 eval = zeval[r],
+                                 p = 5,
+                                 deriv = 4,
+                                 kernel = kernel,
+                                 h = mu_B_g_t_4_bw)
 
-                                      U_hat <- B_g_t[, r, id_gt] - mu_B_g_t_0
+          # Estimated \mathcal{B} for LQR
+          mathcal_B[r] <- (1 / (24 * kd0_Z[r])) *
+            (2 * mu_B_g_t_3 * kd1_Z[r] + mu_B_g_t_4 * kd0_Z[r]) *
+            ((I_4_K1^2 - I_2_K1 * I_6_K1) / (I_4_K1 - I_2_K1^2))
 
-                                      # Bandwidth selection for estimating sigma^2
-                                      sigma2_bw <- nprobust::lpbwselect(y = U_hat^2,
-                                                                        x = Z,
-                                                                        eval = zeval[r],
-                                                                        p = 1,
-                                                                        deriv = 0,
-                                                                        kernel = kernel,
-                                                                        bwselect = "mse-dpi")$bws[, 2]
+        }
+      }
 
-                                      # Estimate sigma^2
-                                      sigma2 <- lpr_func(y = U_hat^2,
-                                                         x = Z,
-                                                         eval = zeval[r],
-                                                         p = 1,
-                                                         deriv = 0,
-                                                         kernel = kernel,
-                                                         h = sigma2_bw)
+      # Estimate \mathcal{V}_{p,g,t,\delta} in asymptotic var. for LLR or LQR --
 
-                                      # Estimated \mathcal{V} for LLR
-                                      I_0_K2 * sigma2 / kd_Z[r]
+      mathcal_V <- rep(NA, num_zeval)
 
-                                    }
+      for (r in 1:num_zeval) {
 
-      # LLR-IMSE-optimal bandwidth and under-smoothing bandwidth ---------------
+        # Bandwidth selection for computing LLR residuals
+        mu_B_g_t_0_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
+                                              x = Z,
+                                              eval = Z_supp,
+                                              p = 1,
+                                              deriv = 0,
+                                              kernel = kernel,
+                                              bwselect = "imse-dpi")$bws[1, 2]
+
+        # Compute LLR residuals
+        mu_B_g_t_0 <- lpr_func(y = B_g_t[, r, id_gt],
+                               x = Z,
+                               eval = Z,
+                               p = 1,
+                               deriv = 0,
+                               kernel = kernel,
+                               h = mu_B_g_t_0_bw)
+
+        U_hat <- B_g_t[, r, id_gt] - mu_B_g_t_0
+
+        # Bandwidth selection for estimating sigma^2
+        sigma2_bw <- nprobust::lpbwselect(y = U_hat^2,
+                                          x = Z,
+                                          eval = zeval[r],
+                                          p = 1,
+                                          deriv = 0,
+                                          kernel = kernel,
+                                          bwselect = "mse-dpi")$bws[, 2]
+
+        # Estimate sigma^2
+        sigma2 <- lpr_func(y = U_hat^2,
+                           x = Z,
+                           eval = zeval[r],
+                           p = 1,
+                           deriv = 0,
+                           kernel = kernel,
+                           h = sigma2_bw)
+
+        # Estimated \mathcal{V} for LLR or LQR
+        if (bwselect %in% c("IMSE1", "US1")) {
+
+          mathcal_V[r] <- const_V1 * sigma2 / kd0_Z[r]
+
+        } else if (bwselect == "IMSE2") {
+
+          mathcal_V[r] <- const_V2 * sigma2 / kd0_Z[r]
+
+        }
+      }
+
+      # Compute bandwidth ------------------------------------------------------
 
       # Compute the integrated \mathcal{B}^2 and \mathcal{V} using trapezoid formula
       int_mathcal_B <- int_mathcal_V <- 0
@@ -590,21 +695,19 @@ catt_gt_continuous <- function(yname,
 
       }
 
-      # LLR-IMSE-optimal bandwidth
-      bw_imse <- (int_mathcal_V / (4 * int_mathcal_B))^(1/5) * n^(-1/5)
+      # Bandwidth
+      bw_temp <-
+        (bwselect == "IMSE1") * (int_mathcal_V / (4 * int_mathcal_B))^(1/5) * n^(-1/5) +
+        (bwselect == "IMSE2") * (int_mathcal_V / (8 * int_mathcal_B))^(1/9) * n^(-1/9) +
+        (bwselect == "US1")   * (int_mathcal_V / (4 * int_mathcal_B))^(1/5) * n^(-2/7)
 
-      # Under-smoothing bandwidth
-      bw_us <- bw_imse * n^(1/5) * n^(-2/7)
-
-      # bandwidth selection for LLR and LQR
-      bw <- c(bw,
-              bw_us * (porder == 1) + bw_imse * (porder == 2))
+      bw <- c(bw, bw_temp)
 
     }
   }
 
   # Bandwidth selection for uniform inference over (g, t, z)
-  if (uniformall) {
+  if (uniformall | (bwselect == "manual" & length(bw) == 1)) {
 
     bw <- rep(min(bw), num_gteval)
 
@@ -644,7 +747,7 @@ catt_gt_continuous <- function(yname,
       data1 <- data %>%
         filter(period == period1) %>%
         mutate(G_g = ifelse(G == g1, 1, 0)) %>%
-        mutate(nev = ifelse(G == 0, 1, 0)) %>%
+        mutate(nev = ifelse(G == 0,  1, 0)) %>%
         mutate(GPScore = GPScore) %>%
         mutate(R_g = (GPScore * nev) / (1 - GPScore))
 
@@ -659,14 +762,14 @@ catt_gt_continuous <- function(yname,
       data1 <- data %>%
         filter(period == period1) %>%
         mutate(G_g = ifelse(G == g1, 1, 0)) %>%
-        mutate(notyet = (G == 0) + (G > t1 + anticipation)) %>%
+        mutate(notyet = (G == 0) + (G > max(g1, t1) + anticipation)) %>%
         mutate(GPScore = GPScore) %>%
         mutate(R_g = (GPScore * notyet) / (1 - GPScore))
 
     }
 
     # Other variables
-    G_g <- data1$G_g
+    G_g[, id_gt] <- data1$G_g
 
     R_g <- data1$R_g
 
@@ -689,10 +792,10 @@ catt_gt_continuous <- function(yname,
     # Second stage estimation: p-th order LPR estimation -----------------------
 
     # Estimation of mu_E_g_t and mu_F_g_t (if needed)
-    if (!is.null(bwselect)) {
+    if (bwselect == "manual") {
 
       E_g_t <- R_g * Y_diff
-      F_g_t <- G_g * Y_diff
+      F_g_t <- G_g[, id_gt] * Y_diff
 
       mu_E_g_t_bw <- nprobust::lpbwselect(y = E_g_t,
                                           x = Z,
@@ -730,13 +833,13 @@ catt_gt_continuous <- function(yname,
 
 
     # LPR estimation
-    mu_G_g <- lpr_func(y = G_g,
-                       x = Z,
-                       eval = zeval,
-                       p = porder,
-                       deriv = 0,
-                       kernel = kernel,
-                       h = bw[id_gt])
+    mu_G_g[, id_gt] <- lpr_func(y = G_g[, id_gt],
+                                x = Z,
+                                eval = zeval,
+                                p = porder,
+                                deriv = 0,
+                                kernel = kernel,
+                                h = bw[id_gt])
 
     mu_R_g <- lpr_func(y = R_g,
                        x = Z,
@@ -749,92 +852,88 @@ catt_gt_continuous <- function(yname,
     # Variable definitions
     for (r in 1:num_zeval) {
 
-      p_diff <- (G_g / mu_G_g[r]) - (R_g / mu_R_g[r])
+      p_diff <- (G_g[, id_gt] / mu_G_g[r, id_gt]) - (R_g / mu_R_g[r])
 
       A_g_t[, r, id_gt] <- p_diff * Y_diff
 
-      B_g_t[, r, id_gt] <- p_diff * Y_diff +
+      B_g_t[, r, id_gt] <- A_g_t[, r, id_gt] +
         ((mu_E_g_t[r, id_gt] / mu_R_g[r]^2) * R_g) -
-        ((mu_F_g_t[r, id_gt] / mu_G_g[r]^2) * G_g)
+        ((mu_F_g_t[r, id_gt] / mu_G_g[r, id_gt]^2) * G_g[, id_gt])
 
     }
 
     # Third stage estimation: p-th order LPR estimation
-    est <- foreach::foreach(r = 1:num_zeval,
-                            .combine = 'c',
-                            .export = c('kernel_func', 'lpr_func', 'polynomial_func'),
-                            .inorder = TRUE,
-                            .packages = packages) %dopar% {
+    est <- rep(NA, num_zeval)
 
-                              lpr_func(y = A_g_t[, r, id_gt],
-                                       x = Z,
-                                       eval = zeval[r],
-                                       p = porder,
-                                       deriv = 0,
-                                       kernel = kernel,
-                                       h = bw[id_gt])
+    for (r in 1:num_zeval) {
 
-                            }
+      est[r] <- lpr_func(y = A_g_t[, r, id_gt],
+                         x = Z,
+                         eval = zeval[r],
+                         p = porder,
+                         deriv = 0,
+                         kernel = kernel,
+                         h = bw[id_gt])
+
+    }
 
     #---------------------------------------------------------------------------
     # Standard error
     #---------------------------------------------------------------------------
 
-    # Estimate \mathcal{V}_{p,g,t,\delta}
-    mathcal_V <- foreach::foreach(r = 1:num_zeval,
-                                  .combine = 'c',
-                                  .export = c('kernel_func', 'lpr_func', 'polynomial_func'),
-                                  .inorder = TRUE,
-                                  .packages = packages) %dopar% {
+    # Estimate \mathcal{V}_{p,g,t,\delta} in the asymptotic variance
+    mathcal_V <- rep(NA, num_zeval)
 
-                                    # Bandwidth selection for computing LPR residuals
-                                    mu_B_g_t_0_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
-                                                                          x = Z,
-                                                                          eval = Z_supp,
-                                                                          p = porder,
-                                                                          deriv = 0,
-                                                                          kernel = kernel,
-                                                                          bwselect = "imse-dpi")$bws[1, 2]
+    for (r in 1:num_zeval) {
 
-                                    # Compute LPR residuals
-                                    mu_B_g_t_0 <- lpr_func(y = B_g_t[, r, id_gt],
-                                                           x = Z,
-                                                           eval = Z,
-                                                           p = porder,
-                                                           deriv = 0,
-                                                           kernel = kernel,
-                                                           h = mu_B_g_t_0_bw)
+      # Bandwidth selection for computing LPR residuals
+      mu_B_g_t_0_bw <- nprobust::lpbwselect(y = B_g_t[, r, id_gt],
+                                            x = Z,
+                                            eval = Z_supp,
+                                            p = porder,
+                                            deriv = 0,
+                                            kernel = kernel,
+                                            bwselect = "imse-dpi")$bws[1, 2]
 
-                                    U_hat <- B_g_t[, r, id_gt] - mu_B_g_t_0
+      # Compute LPR residuals
+      mu_B_g_t_0 <- lpr_func(y = B_g_t[, r, id_gt],
+                             x = Z,
+                             eval = Z,
+                             p = porder,
+                             deriv = 0,
+                             kernel = kernel,
+                             h = mu_B_g_t_0_bw)
 
-                                    # Bandwidth selection for estimating sigma^2
-                                    sigma2_bw <- nprobust::lpbwselect(y = U_hat^2,
-                                                                      x = Z,
-                                                                      eval = zeval[r],
-                                                                      p = 1,
-                                                                      deriv = 0,
-                                                                      kernel = kernel,
-                                                                      bwselect = "mse-dpi")$bws[, 2]
+      U_hat <- B_g_t[, r, id_gt] - mu_B_g_t_0
 
-                                    # Estimate sigma^2
-                                    sigma2 <- lpr_func(y = U_hat^2,
-                                                       x = Z,
-                                                       eval = zeval[r],
-                                                       p = 1,
-                                                       deriv = 0,
-                                                       kernel = kernel,
-                                                       h = sigma2_bw)
+      # Bandwidth selection for estimating sigma^2
+      sigma2_bw <- nprobust::lpbwselect(y = U_hat^2,
+                                        x = Z,
+                                        eval = zeval[r],
+                                        p = 1,
+                                        deriv = 0,
+                                        kernel = kernel,
+                                        bwselect = "mse-dpi")$bws[, 2]
 
-                                    # Estimated \mathcal{V}_{p,g,t,\delta}
-                                    const_V * sigma2 / kd_Z[r]
+      # Estimate sigma^2
+      sigma2 <- lpr_func(y = U_hat^2,
+                         x = Z,
+                         eval = zeval[r],
+                         p = 1,
+                         deriv = 0,
+                         kernel = kernel,
+                         h = sigma2_bw)
 
-                                  }
+      # Estimated \mathcal{V}_{p,g,t,\delta}
+      mathcal_V[r] <- const_V * sigma2 / kd0_Z[r]
+
+    }
 
     # Standard error
     se <- sqrt(mathcal_V / (n * bw[id_gt]))
 
     #---------------------------------------------------------------------------
-    # Analytical uniform confidence bands
+    # Analytical uniform confidence band
     #---------------------------------------------------------------------------
 
     # Analytical critical value
@@ -881,12 +980,12 @@ catt_gt_continuous <- function(yname,
   Estimate <- as.data.frame(Estimate)
 
   #-----------------------------------------------------------------------------
-  # Uniform confidence bands via multiplier bootstrapping
+  # Bootstrap uniform confidence band
   #-----------------------------------------------------------------------------
 
   if (bstrap) {
 
-    # Multiplier bootstrap LPR estimates and t statistics
+    # Bootstrapped LPR estimates and absolute t statistics
     mb_est <- mb_t <- array(NA, dim = c(biters, num_zeval, num_gteval))
 
     # Sup-t-statistics
@@ -895,10 +994,10 @@ catt_gt_continuous <- function(yname,
     # Kappa
     kappa <- (sqrt(5) + 1) / 2
 
-    # Multiplier bootstrap
+    # Bootstrap
     for (mb in 1:biters) {
 
-      # Multiplier bootstrap weights (Mammen)
+      # Bootstrap weights (Mammen)
       mb_weight <- sample(x = c(2 - kappa, 1 + kappa),
                           size = n,
                           prob = c(kappa/sqrt(5), 1 - kappa/sqrt(5)),
@@ -929,25 +1028,21 @@ catt_gt_continuous <- function(yname,
           filter(g == g1, t == t1) %>%
           pull(se)
 
-        # Bootstrapped LPR estimate
-        mb_est[mb, , id_gt] <- foreach::foreach(r = 1:num_zeval,
-                                                .combine = 'c',
-                                                .export = c('kernel_func', 'lpr_func', 'polynomial_func'),
-                                                .inorder = TRUE,
-                                                .packages = packages) %dopar% {
+        # Bootstrapped LPR estimates
+        for (r in 1:num_zeval) {
 
-                                                  lpr_func(y = A_g_t[, r, id_gt],
-                                                           x = Z,
-                                                           eval = zeval[r],
-                                                           p = porder,
-                                                           deriv = 0,
-                                                           kernel = kernel,
-                                                           h = bw[id_gt],
-                                                           weight = mb_weight)
+          mb_est[mb, r, id_gt] <- lpr_func(y = A_g_t[, r, id_gt],
+                                           x = Z,
+                                           eval = zeval[r],
+                                           p = porder,
+                                           deriv = 0,
+                                           kernel = kernel,
+                                           h = bw[id_gt],
+                                           weight = mb_weight)
 
-                                                }
+        }
 
-        # Multiplier bootstrap t statistics
+        # Bootstrapped absolute t statistics
         mb_t[mb, , id_gt] <- abs(mb_est[mb, , id_gt] - est_temp) / se_temp
 
         # Sup-t-statistic for uniform inference over z
@@ -964,12 +1059,12 @@ catt_gt_continuous <- function(yname,
                         FUN = max,
                         na.rm = TRUE)
 
-      # Multiplier bootstrap critical value for uniform inference over (g, t, z)
+      # Bootstrap critical value for uniform inference over (g, t, z)
       c_check <- stats::quantile(x = mb_sup_t, probs = 1 - alp)
 
     } else {
 
-      # Multiplier bootstrap critical values for uniform inference over z
+      # Bootstrap critical values for uniform inference over z
       c_check <- apply(X = mb_sup_t,
                        MARGIN = 2,
                        FUN = stats::quantile,
@@ -1024,7 +1119,7 @@ catt_gt_continuous <- function(yname,
 
     if (bstrap) {
 
-      # Figure for multiplier bootstrap UCB
+      # Figure for bootstrap UCB
       Figure2[[paste0("g", g1, "_t", t1)]] <- graph_func_continuous(Estimate = Estimate,
                                                                     g1 = g1,
                                                                     t1 = t1,
@@ -1033,14 +1128,19 @@ catt_gt_continuous <- function(yname,
     }
   }
 
-  # Stop parallel computing ----------------------------------------------------
-
-  parallel::stopCluster(cluster)
-
   # Return ---------------------------------------------------------------------
 
-  return(list(Estimate = Estimate,
-              Figure1  = Figure1,
-              Figure2  = Figure2))
+  return(list(Estimate  = Estimate,
+              Figure1   = Figure1,
+              Figure2   = Figure2,
+              Arguments = Arguments,
+              gteval    = gteval,
+              B_g_t     = B_g_t,
+              G_g       = G_g,
+              Z         = Z,
+              mu_G_g    = mu_G_g,
+              gbar      = gbar,
+              kd0_Z     = kd0_Z,
+              kd1_Z     = kd1_Z))
 
 }

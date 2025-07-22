@@ -2,7 +2,7 @@
 % Please edit documentation in R/catt_gt_continuous.R
 \name{catt_gt_continuous}
 \alias{catt_gt_continuous}
-\title{Group-Time Conditional Average Treatment Effects Given a Continuous Covariate}
+\title{Uniform Inference for Group-Time Conditional Average Treatment Effects Given a Continuous Covariate}
 \usage{
 catt_gt_continuous(
   yname,
@@ -14,16 +14,17 @@ catt_gt_continuous(
   data,
   zeval,
   gteval = NULL,
-  control_group = "nevertreated",
+  pretrend = FALSE,
+  control_group = "notyettreated",
   anticipation = 0,
   alp = 0.05,
   bstrap = TRUE,
   biters = 1000,
   porder = 2,
   kernel = "gau",
+  bwselect = "IMSE1",
   bw = NULL,
-  uniformall = FALSE,
-  cores = 1
+  uniformall = TRUE
 )
 }
 \arguments{
@@ -50,11 +51,16 @@ It should be of the form `~ X1 + X2`.
 \item{gteval}{The vector or matrix of the evaluation points g and t.
 If it is a vector, the first and second elements indicate g and t, respectively.
 If it is a matrix, the first and second columns indicate g's and t's, respectively.
-Default is `NULL`, and `gteval` is automatically constructed.}
+Default is `NULL` and `gteval` is constructed automatically.}
+
+\item{pretrend}{Boolean for whether or not to perform the uniform inference
+for CATT in the pre-treatment periods (i.e., conditional pre-trends).
+This parameter is only applicable if `gteval = NULL`.
+Default is `FALSE`.}
 
 \item{control_group}{Which units to use the control group.
 Options are "nevertreated" and "notyettreated".
-Default is "nevertreated".}
+Default is "notyettreated".}
 
 \item{anticipation}{The number of time periods before participating in the
 treatment where units can anticipate participating in the treatment and
@@ -63,12 +69,13 @@ Default is 0.}
 
 \item{alp}{The significance level. Default is 0.05.}
 
-\item{bstrap}{Boolean for whether or not to perform the multiplier bootstrap inference.
+\item{bstrap}{Boolean for whether or not to perform weighted bootstrapping.
 Default is `TRUE`.
 If bstrap is `FALSE`, only the analytical critical value is used.}
 
-\item{biters}{The number of bootstrap iterations to use.
-Default is 1000, which is only applicable if bstrap is `TRUE`.}
+\item{biters}{The number of bootstrap iterations.
+This parameter is only applicable if bstrap is `TRUE`.
+Default is 1000.}
 
 \item{porder}{The polynomial order used for the second- and third-stage estimation.
 Options are 1 and 2,
@@ -80,19 +87,25 @@ Options are "gau" for the Gaussian kernel and
 "epa" for the Epanechnikov kernel.
 Default is "gau".}
 
-\item{bw}{The scalar bandwidth used for the second- and third-stage estimation.
-Default is `NULL`, and the bandwidth is automatically selected.}
+\item{bwselect}{The bandwidth selection method used for the second- and third-stage estimation.
+Options are "IMSE1", "IMSE2", "US1", and "manual".
+"IMSE1" and "IMSE2" mean the IMSE-optimal bandwidths for the local linear and quadratic regressions, respectively.
+"US1" means the rule-of-thumb undersmoothing bandwidth for the local linear regression.
+"manual" means the manual selection and bw should be specified in this case.
+Default is "IMSE1", which is recommended for use with `porder = 2`.}
+
+\item{bw}{The bandwidth used for the second- and third-stage estimation.
+Default is `NULL` and the bandwidth is chosen automatically.
+This parameter is only applicable if bwselect is "manual", and
+should be a scalar or a vector whose length equals to the number of rows of gteval.}
 
 \item{uniformall}{Boolean for whether or not to perform the uniform inference over (g, t, z).
-Default is `FALSE`, and the uniform inference only over z is performed.}
-
-\item{cores}{The number of cores to use for parallel processing.
-The number of available cores can be checked with parallel::detectCores().
-Default is 1.}
+Default is `TRUE`, and the uniform inference over (g, t, z) is performed.
+If `FALSE`, the uniform inference only over z is performed.}
 }
 \value{
-A list that contains the following elements:
-\item{Estimate}{A data.frame that contains the following elements: \cr
+A list that contains the following elements.
+\item{Estimate}{A data.frame that contains the following elements. \cr
 g: The group. \cr
 t: The period. \cr
 z: The covariate value. \cr
@@ -100,42 +113,51 @@ est: The doubly robust estimate of CATT. \cr
 se: The standard error. \cr
 ci1_lower: The lower bound of the analytical UCB. \cr
 ci1_upper: The upper bound of the analytical UCB. \cr
-ci2_lower: The lower bound of the UCB via multiplier bootstrapping. \cr
-ci2_upper: The upper bound of the UCB via multiplier bootstrapping. \cr
+ci2_lower: The lower bound of the bootstrap UCB. \cr
+ci2_upper: The upper bound of the bootstrap UCB. \cr
 bw: The bandwidth.}
 \item{Figure1}{A list that contains the ggplot elements for the analytical UCB}
-\item{Figure2}{A list that contains the ggplot elements for the UCB via multiplier bootstrapping}
+\item{Figure2}{A list that contains the ggplot elements for the bootstrap UCB}
 }
 \description{
-`catt_gt_continuous` computes doubly robust uniform confidence bands for
-the group-time conditional average treatment (CATT) function given a continuous
-pre-treatment covariate in the staggered difference-in-differences setup of
-Callaway and Sant'Anna (2021).
-See Imai, Qin, and Yanagi (2023) for details.
+`catt_gt_continuous` computes doubly robust estimates and uniform confidence
+bands for the group-time conditional average treatment effect (CATT)
+function given a continuous pre-treatment covariate in the staggered
+difference-in-differences setup of Callaway and Sant'Anna (2021)
+for balanced panel data.
+See Imai, Qin, and Yanagi (2025) for more details.
 }
 \examples{
 \dontrun{
-set.seed(1)
-data <- datageneration(n = 1000, tau = 4, continuous = TRUE)
-est <- catt_gt_continuous(yname = "Y",
-                          tname = "period",
-                          idname = "id",
-                          gname = "G",
-                          zname = "Z",
-                          xformla = ~ Z,
-                          data = data,
-                          zeval = seq(-1, 1, by = 0.1),
-                          gteval = c(2, 2),
-                          control_group = "nevertreated",
-                          anticipation = 0,
-                          alp = 0.05,
-                          bstrap = TRUE,
-                          biters = 1000,
-                          porder = 2,
-                          kernel = "gau",
-                          bw = NULL,
-                          uniformall = FALSE,
-                          cores = 1)
+
+data <- datageneration(
+  n = 500,
+  tau = 4
+)
+
+output <- catt_gt_continuous(
+  yname = "Y",
+  tname = "period",
+  idname = "id",
+  gname = "G",
+  zname = "Z",
+  xformla = ~ Z,
+  data = data,
+  zeval = seq(-1, 1, by = 0.1),
+  gteval = c(2, 2),
+  pretrend = FALSE,
+  control_group = "notyettreated",
+  anticipation = 0,
+  alp = 0.05,
+  bstrap = TRUE,
+  biters = 1000,
+  porder = 2,
+  kernel = "gau",
+  bwselect = "IMSE1",
+  bw = NULL,
+  uniformall = TRUE
+)
+
 }
 
 }
@@ -144,9 +166,9 @@ Callaway, B., & Sant’Anna, P. H. (2021).
 Difference-in-differences with multiple time periods.
 Journal of Econometrics, 225(2), 200-230.
 
-Imai, S., Qin, L., & Yanagi, T. (2023).
-Doubly Robust Uniform Confidence Bands
-for Group-Time Conditional Average Treatment Effects
-in Difference-in-Differences.
+Imai, S., Qin, L., & Yanagi, T. (2025).
+Doubly robust uniform confidence bands
+for group-time conditional average treatment effects
+in difference-in-differences.
 arXiv preprint arXiv:2305.02185.
 }

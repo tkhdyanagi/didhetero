@@ -144,10 +144,10 @@ parametric_func <- function(xformla,
 
       }
 
-      # Subset of data with G == g | G == 0 | G > t + delta
+      # Subset of data with G == g | G == 0 | G > max(g, t) + delta
       data1 <- data %>%
         filter(period == period1) %>%
-        filter(G == g | G == 0 | G > t + anticipation) %>%
+        filter(G == g | G == 0 | G > max(g, t) + anticipation) %>%
         mutate(G_g = ifelse(G == g, 1, 0))
 
       # Indicator 1{G = g}
@@ -192,14 +192,14 @@ parametric_func <- function(xformla,
 
         GPS_inffunc_temp <- rep(0, n)
 
-        GPS_inffunc_temp[data2$G == g | data2$G == 0 | G > t + anticipation] <-
+        GPS_inffunc_temp[data2$G == g | data2$G == 0 | data2$G > max(g, t) + anticipation] <-
           asy_lin_rep_GPS
 
       } else if (dim_X > 1) {
 
         GPS_inffunc_temp <- matrix(0, nrow = n, ncol = dim_X)
 
-        GPS_inffunc_temp[(data2$G == g | data2$G == 0 | G > t + anticipation), ] <- asy_lin_rep_GPS
+        GPS_inffunc_temp[(data2$G == g | data2$G == 0 | data2$G > max(g, t) + anticipation), ] <- asy_lin_rep_GPS
 
       }
 
@@ -311,7 +311,7 @@ parametric_func <- function(xformla,
       }
 
       data3 <- data %>%
-        filter(G == 0 | G > t + anticipation)
+        filter(G == 0 | G > max(g, t) + anticipation)
 
       # Variables for outcome regression
       Y_t <- data3 %>%
@@ -358,13 +358,13 @@ parametric_func <- function(xformla,
 
         OR_inffunc_temp <- rep(0, n)
 
-        OR_inffunc_temp[data4$G == 0 | data4$G > t + anticipation] <- asy_lin_rep_OR
+        OR_inffunc_temp[data4$G == 0 | data4$G > max(g, t) + anticipation] <- asy_lin_rep_OR
 
       } else if (dim_X > 1) {
 
         OR_inffunc_temp <- matrix(0, nrow = n, ncol = dim_X)
 
-        OR_inffunc_temp[(data4$G == 0 | data4$G > t + anticipation), ] <- asy_lin_rep_OR
+        OR_inffunc_temp[(data4$G == 0 | data4$G > max(g, t) + anticipation), ] <- asy_lin_rep_OR
 
       }
 
