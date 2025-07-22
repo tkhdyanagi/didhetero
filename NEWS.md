@@ -1,3 +1,7 @@
+# didhetero 0.1.4
+
+* Updated the GitHub Pages.
+
 # didhetero 0.1.3
 
 * Updated the GitHub Pages.
