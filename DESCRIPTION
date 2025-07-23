@@ -1,7 +1,7 @@
 Package: didhetero
 Type: Package
 Title: Treatment Effect Heterogeneity in Staggered Difference-in-Differences
-Version: 0.1.5
+Version: 0.1.6
 Authors@R: c(
     person("Shunsuke", "Imai", email = "imai.shunsuke.57n@st.kyoto-u.ac.jp", role = c("aut", "cph")),
     person("Lei", "Qin", email = "qinlei6d@unii.ac.jp", role = c("aut", "cph")),
