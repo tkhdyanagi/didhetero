@@ -9,11 +9,16 @@
 
 The **didhetero** package provides tools to construct doubly robust
 uniform confidence bands (UCB) for the group-time conditional average
-treatment effect (CATT) function given a pre-treatment covariate of
-interest and a variety of useful summary parameters in the staggered
-difference-in-differences setup of Callaway and Sant’Anna (2021).
+treatment effect (CATT) function given a pre-treatment continuous
+covariate of interest and a variety of useful summary parameters in the
+staggered difference-in-differences setup of Callaway and Sant’Anna
+(2021).
 
-The uniform inference procedures are developed by [Imai, Qin, and Yanagi
+This package is useful for understanding the heterogeneity in treatment
+effects with respect to groups, periods, and covariate values in the
+staggered DiD setting.
+
+The uniform inference methods are developed by [Imai, Qin, and Yanagi
 (2025) “Doubly Robust Uniform Confidence Bands for Group-Time
 Conditional Average Treatment Effects in
 Difference-in-Differences”](https://doi.org/10.48550/arXiv.2305.02185).

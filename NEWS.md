@@ -1,3 +1,7 @@
+# didhetero 0.1.5
+
+* Improved the first-stage parametric estimation.
+
 # didhetero 0.1.4
 
 * Updated the GitHub Pages.

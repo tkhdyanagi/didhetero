@@ -12,23 +12,24 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7.5, 
-  fig.height = 5 
+  fig.width = 7.5,
+  fig.height = 5
 )
 options(rmarkdown.html_vignette.check_title = FALSE)
 ```
 
 ## Introduction
 
-The **didhetero** package provides tools to construct doubly robust 
-uniform confidence bands for the group-time conditional average treatment 
-effect (CATT) function given a pre-treatment covariate of interest and 
-a variety of useful summary parameters in the staggered 
+The **didhetero** package provides tools to construct doubly robust
+uniform confidence bands for the group-time conditional average treatment
+effect (CATT) function given a pre-treatment continuous covariate of interest
+and a variety of useful summary parameters in the staggered
 difference-in-differences (DiD) setup of Callaway and Sant'Anna (2021).
-This package is useful for understanding the heterogeneity in treatment effects 
+
+This package is useful for understanding the heterogeneity in treatment effects
 with respect to groups, periods, and covariate values in the staggered DiD setting.
 
-The uniform inference procedures are developed by [Imai, Qin, and Yanagi (2025) "Doubly Robust Uniform Confidence Bands for Group-Time Conditional Average Treatment Effects in Difference-in-Differences"](https://doi.org/10.48550/arXiv.2305.02185).
+The uniform inference methods are developed by [Imai, Qin, and Yanagi (2025) "Doubly Robust Uniform Confidence Bands for Group-Time Conditional Average Treatment Effects in Difference-in-Differences"](https://doi.org/10.48550/arXiv.2305.02185).
 
 ## Installation
 
@@ -49,7 +50,7 @@ The **didhetero** package provides the following functions.
 
 ## The `catt_gt_continuous()` Function
 
-#### Arguments 
+#### Arguments
 
 The `catt_gt_continuous()` function has the following arguments.
 
@@ -69,7 +70,7 @@ The `catt_gt_continuous()` function has the following arguments.
    If it is a vector, the first and second elements indicate g and t, respectively.
    If it is a matrix, the first and second columns indicate g's and t's, respectively.
    Default is `NULL` and gteval is constructed automatically.
-- `pretrend`: Boolean for whether or not to perform the uniform inference 
+- `pretrend`: Boolean for whether or not to perform the uniform inference
    for CATT in the pre-treatment periods (i.e., pre-trends in our framework).
    This parameter is only applicable if gteval is `NULL`.
    Default is `FALSE`.
@@ -86,7 +87,7 @@ The `catt_gt_continuous()` function has the following arguments.
    If bstrap is `FALSE`, only the analytical critical value is used.
 - `biters`: The number of bootstrap iterations.
    This parameter is only applicable if `bstrap = TRUE`.
-   Default is 1000. 
+   Default is 1000.
 - `porder`: The polynomial order used for the second- and third-stage estimation.
    Options are 1 and 2,
    which correspond to the local linear and quadratic regressions, respectively.
@@ -103,7 +104,7 @@ The `catt_gt_continuous()` function has the following arguments.
    Default is "IMSE1", which is recommended for use with `porder = 2`.
 - `bw`: The bandwidth used for the second- and third-stage estimation.
    Default is `NULL` and the bandwidth is chosen automatically.
-   This parameter is only applicable if bwselect is "manual", and 
+   This parameter is only applicable if bwselect is "manual", and
    should be a scalar or a vector whose length equals to the number of rows of gteval.
 - `uniformall`: Boolean for whether or not to perform the uniform inference over (g, t, z).
    Default is `TRUE`, and the uniform inference over (g, t, z) is performed.
@@ -133,10 +134,10 @@ The `catt_gt_continuous()` function returns a list that contains the following e
 
 The `aggte_continuous()` function has the following arguments.
 
-- `output`: The output of the `catt_gt_continuous` function. 
-   In doing so, several arguments and the uniform inference results for CATT from 
+- `output`: The output of the `catt_gt_continuous` function.
+   In doing so, several arguments and the uniform inference results for CATT from
    the `catt_gt_continuous` function can be used in this function.
-   In particular, the following are passed down from output: 
+   In particular, the following are passed down from output:
    `xformla`, `zeval`, `pretrend`, `control_group`, `anticipation`, `alp`, and `kernel`.
 - `type` Which type of the summary parameter is of interest.
    Options are "simple", "dynamic", "group", and "calendar".
@@ -166,7 +167,7 @@ The `aggte_continuous()` function has the following arguments.
 - `bw`:
    The bandwidth used for the aggregation.
    Default is `NULL` and the bandwidth is chosen automatically.
-   This parameter is only applicable if bwselect is "manual", and 
+   This parameter is only applicable if bwselect is "manual", and
    should be a scalar or a vector whose length equals to the number of rows of eval.
 - `uniformall`: Boolean for whether or not to perform the uniform inference over both eval and z.
    Default is `TRUE` and the uniform inference over eval and z is performed.
@@ -283,12 +284,12 @@ output2$Figure2$eval0
 
 ## References
 
-- Callaway, B., & Sant’Anna, P. H. (2021). 
-Difference-in-differences with multiple time periods. 
+- Callaway, B., & Sant’Anna, P. H. (2021).
+Difference-in-differences with multiple time periods.
 Journal of Econometrics, 225(2), 200-230.
 [Link](https://doi.org/10.1016/j.jeconom.2020.12.001)
 
-- Imai, S., Qin, L., & Yanagi, T. (2025). 
+- Imai, S., Qin, L., & Yanagi, T. (2025).
 Doubly Robust Uniform Confidence Bands for Group-Time Conditional Average Treatment Effects in Difference-in-Differences.
 arXiv preprint arXiv:2305.02185.
 [Link](https://doi.org/10.48550/arXiv.2305.02185)
