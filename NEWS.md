@@ -1,3 +1,7 @@
+# didhetero 0.1.7
+
+* Added the overview vignette.
+
 # didhetero 0.1.6
 
 * Updated the GitHub Pages.
