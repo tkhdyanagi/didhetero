@@ -1,3 +1,7 @@
+# didhetero 0.1.8
+
+* Fixed a bug in "func_parametric.R".
+
 # didhetero 0.1.7
 
 * Added the overview vignette.

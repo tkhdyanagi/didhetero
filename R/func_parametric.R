@@ -59,15 +59,15 @@ parametric_func <- function(xformla,
 
   if (control_group == "nevertreated") {
 
-    for (g in geval) {
+    for (g1 in geval) {
 
-      # Subset of data with G == g | G == 0
+      # Subset of data with G == g1 | G == 0
       data1 <- data %>%
         filter(period == period1) %>%
-        filter(G == g | G == 0) %>%
-        mutate(G_g = ifelse(G == g, 1, 0))
+        filter(G == g1 | G == 0) %>%
+        mutate(G_g = ifelse(G == g1, 1, 0))
 
-      # Indicator 1{G = g}
+      # Indicator 1{G = g1}
       G_g <- data1$G_g
 
       # Covariates
@@ -83,7 +83,7 @@ parametric_func <- function(xformla,
       # Estimated coefficients in logit estimation
       pi_coef <- logit$coefficients
 
-      GPS_coef <- rbind(GPS_coef, c(g, pi_coef))
+      GPS_coef <- rbind(GPS_coef, c(g1, pi_coef))
 
       # Estimated GPS for all units
       data2 <- data %>%
@@ -94,7 +94,7 @@ parametric_func <- function(xformla,
       p <- exp(covariates %*% pi_coef)
 
       GPS <- rbind(GPS,
-                   cbind(data2$id, g, p / (1 + p)))
+                   cbind(data2$id, g1, p / (1 + p)))
 
     }
 
@@ -105,21 +105,21 @@ parametric_func <- function(xformla,
       # Evaluation points (g, t)
       if (is.vector(gteval)) {
 
-        g <- gteval[1]
-        t <- gteval[2]
+        g1 <- gteval[1]
+        t1 <- gteval[2]
 
       } else if (is.matrix(gteval)) {
 
-        g <- gteval[id_gt, 1]
-        t <- gteval[id_gt, 2]
+        g1 <- gteval[id_gt, 1]
+        t1 <- gteval[id_gt, 2]
 
       }
 
-      # Subset of data with G == g | G == 0 | G > max(g, t) + delta
+      # Subset of data with G == g1 | G == 0 | G > max(g1, t1) + delta
       data1 <- data %>%
         filter(period == period1) %>%
-        filter(G == g | G == 0 | G > max(g, t) + anticipation) %>%
-        mutate(G_g = ifelse(G == g, 1, 0))
+        filter(G == g1 | G == 0 | G > max(g1, t1) + anticipation) %>%
+        mutate(G_g = ifelse(G == g1, 1, 0))
 
       # Indicator 1{G = g}
       G_g <- data1$G_g
@@ -137,7 +137,7 @@ parametric_func <- function(xformla,
       # Estimated coefficients in logit estimation
       pi_coef <- logit$coefficients
 
-      GPS_coef <- rbind(GPS_coef, c(g, t, pi_coef))
+      GPS_coef <- rbind(GPS_coef, c(g1, t1, pi_coef))
 
       # Estimated GPS
       data2 <- data %>%
@@ -147,7 +147,7 @@ parametric_func <- function(xformla,
 
       p <- exp(covariates %*% pi_coef)
 
-      GPS <- rbind(GPS, cbind(data2$id, g, t, p / (1 + p)))
+      GPS <- rbind(GPS, cbind(data2$id, g1, t1, p / (1 + p)))
 
     }
   }
@@ -166,23 +166,23 @@ parametric_func <- function(xformla,
       # Evaluation points (g, t)
       if (is.vector(gteval)) {
 
-        g <- gteval[1]
-        t <- gteval[2]
+        g1 <- gteval[1]
+        t1 <- gteval[2]
 
       } else if (is.matrix(gteval)) {
 
-        g <- gteval[id_gt, 1]
-        t <- gteval[id_gt, 2]
+        g1 <- gteval[id_gt, 1]
+        t1 <- gteval[id_gt, 2]
 
       }
 
       # Variables for outcome regression
       Y_t <- data3 %>%
-        filter(period == t) %>%
+        filter(period == t1) %>%
         pull(Y)
 
       Y_g <- data3 %>%
-        filter(period == g - anticipation - 1) %>%
+        filter(period == g1 - anticipation - 1) %>%
         pull(Y)
 
       # Covariates
@@ -199,7 +199,7 @@ parametric_func <- function(xformla,
 
       beta <- OLS$coefficients
 
-      OR_coef <- rbind(OR_coef, c(g, t, beta))
+      OR_coef <- rbind(OR_coef, c(g1, t1, beta))
 
       # Estimated OR
       data4 <- data %>%
@@ -208,7 +208,7 @@ parametric_func <- function(xformla,
       covariates <- stats::model.matrix(xformla, data = data4)
 
       OR <- rbind(OR,
-                  cbind(data4$id, g, t, covariates %*% beta))
+                  cbind(data4$id, g1, t1, covariates %*% beta))
 
     }
 
@@ -219,26 +219,26 @@ parametric_func <- function(xformla,
       # Evaluation points (g, t)
       if (is.vector(gteval)) {
 
-        g <- gteval[1]
-        t <- gteval[2]
+        g1 <- gteval[1]
+        t1 <- gteval[2]
 
       } else if (is.matrix(gteval)) {
 
-        g <- gteval[id_gt, 1]
-        t <- gteval[id_gt, 2]
+        g1 <- gteval[id_gt, 1]
+        t1 <- gteval[id_gt, 2]
 
       }
 
       data3 <- data %>%
-        filter(G == 0 | G > max(g, t) + anticipation)
+        filter(G == 0 | G > max(g1, t1) + anticipation)
 
       # Variables for outcome regression
       Y_t <- data3 %>%
-        filter(period == t) %>%
+        filter(period == t1) %>%
         pull(Y)
 
       Y_g <- data3 %>%
-        filter(period == g - anticipation - 1) %>%
+        filter(period == g1 - anticipation - 1) %>%
         pull(Y)
 
       # Covariates
@@ -255,7 +255,7 @@ parametric_func <- function(xformla,
 
       beta <- OLS$coefficients
 
-      OR_coef <- rbind(OR_coef, c(g, t, beta))
+      OR_coef <- rbind(OR_coef, c(g1, t1, beta))
 
       # Estimated OR
       data4 <- data %>%
@@ -264,7 +264,7 @@ parametric_func <- function(xformla,
       covariates <- stats::model.matrix(xformla, data = data4)
 
       OR <- rbind(OR,
-                  cbind(data4$id, g, t, covariates %*% beta))
+                  cbind(data4$id, g1, t1, covariates %*% beta))
 
     }
   }
